@@ -64,6 +64,7 @@ class ChatModel:
         messages: Sequence[Dict[str, str]],
         system: Optional[str] = None,
         tools: Optional[str] = None,
+        adapter: Optional[str] = None,
         images: Optional[Sequence["ImageInput"]] = None,
         videos: Optional[Sequence["VideoInput"]] = None,
         **input_kwargs,
@@ -81,6 +82,7 @@ class ChatModel:
         messages: Sequence[Dict[str, str]],
         system: Optional[str] = None,
         tools: Optional[str] = None,
+        adapter: Optional[str] = None,
         images: Optional[Sequence["ImageInput"]] = None,
         videos: Optional[Sequence["VideoInput"]] = None,
         **input_kwargs,
@@ -88,13 +90,14 @@ class ChatModel:
         r"""
         Asynchronously gets a list of responses of the chat model.
         """
-        return await self.engine.chat(messages, system, tools, images, videos, **input_kwargs)
+        return await self.engine.chat(messages, system, tools, adapter, images, videos, **input_kwargs)
 
     def stream_chat(
         self,
         messages: Sequence[Dict[str, str]],
         system: Optional[str] = None,
         tools: Optional[str] = None,
+        adapter: Optional[str] = None,
         images: Optional[Sequence["ImageInput"]] = None,
         videos: Optional[Sequence["VideoInput"]] = None,
         **input_kwargs,
@@ -102,7 +105,7 @@ class ChatModel:
         r"""
         Gets the response token-by-token of the chat model.
         """
-        generator = self.astream_chat(messages, system, tools, images, videos, **input_kwargs)
+        generator = self.astream_chat(messages, system, tools, adapter, images, videos, **input_kwargs)
         while True:
             try:
                 task = asyncio.run_coroutine_threadsafe(generator.__anext__(), self._loop)

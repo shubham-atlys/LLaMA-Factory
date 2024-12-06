@@ -97,16 +97,18 @@ class VllmEngine(BaseEngine):
             vllm.model_executor.models.llava.LlavaMultiModalProjector = LlavaMultiModalProjectorForYiVLForVLLM
 
         self.model = AsyncLLMEngine.from_engine_args(AsyncEngineArgs(**engine_args))
+        adapter_list = ["passport_profile_page", "passport_biodata_page"]
+        self.lora_requests = dict()
         if model_args.adapter_name_or_path is not None:
-            self.lora_request = LoRARequest("default", 1, model_args.adapter_name_or_path[0])
-        else:
-            self.lora_request = None
+            for i, adapter_path in enumerate(model_args.adapter_name_or_path[0]):
+                self.lora_requests[adapter_list[i]] = LoRARequest(adapter_list[i], 1, model_args.adapter_name_or_path[i])
 
     async def _generate(
         self,
         messages: Sequence[Dict[str, str]],
         system: Optional[str] = None,
         tools: Optional[str] = None,
+        adapter: Optional[str] = None,
         images: Optional[Sequence["ImageInput"]] = None,
         videos: Optional[Sequence["VideoInput"]] = None,
         **input_kwargs,
@@ -186,11 +188,15 @@ class VllmEngine(BaseEngine):
         else:
             multi_modal_data = None
 
+        lora_request = None
+        if adapter:
+            lora_request = self.lora_requests[adapter]
+
         result_generator = self.model.generate(
             {"prompt_token_ids": prompt_ids, "multi_modal_data": multi_modal_data},
             sampling_params=sampling_params,
             request_id=request_id,
-            lora_request=self.lora_request,
+            lora_request=lora_request,
         )
         return result_generator
 
@@ -200,12 +206,13 @@ class VllmEngine(BaseEngine):
         messages: Sequence[Dict[str, str]],
         system: Optional[str] = None,
         tools: Optional[str] = None,
+        adapter: Optional[str] = None,
         images: Optional[Sequence["ImageInput"]] = None,
         videos: Optional[Sequence["VideoInput"]] = None,
         **input_kwargs,
     ) -> List["Response"]:
         final_output = None
-        generator = await self._generate(messages, system, tools, images, videos, **input_kwargs)
+        generator = await self._generate(messages, system, tools, adapter, images, videos, **input_kwargs)
         async for request_output in generator:
             final_output = request_output
 
@@ -228,12 +235,13 @@ class VllmEngine(BaseEngine):
         messages: Sequence[Dict[str, str]],
         system: Optional[str] = None,
         tools: Optional[str] = None,
+        adapter: Optional[str] = None,
         images: Optional[Sequence["ImageInput"]] = None,
         videos: Optional[Sequence["VideoInput"]] = None,
         **input_kwargs,
     ) -> AsyncGenerator[str, None]:
         generated_text = ""
-        generator = await self._generate(messages, system, tools, images, videos, **input_kwargs)
+        generator = await self._generate(messages, system, tools, adapter, images, videos, **input_kwargs)
         async for result in generator:
             delta_text = result.outputs[0].text[len(generated_text) :]
             generated_text = result.outputs[0].text

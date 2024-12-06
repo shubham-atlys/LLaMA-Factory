@@ -94,6 +94,7 @@ class ChatCompletionMessage(BaseModel):
 
 class ChatCompletionRequest(BaseModel):
     model: str
+    adapter: Optional[str] = None
     messages: List[ChatMessage]
     tools: Optional[List[FunctionAvailable]] = None
     do_sample: Optional[bool] = None
